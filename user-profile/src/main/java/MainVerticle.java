@@ -1,11 +1,10 @@
-import api.ProfileVerticle;
-import infra.profile.MemProfileImpl;
+import common.JsonSerializer;
+import entity.User;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import repo.profile.UserProfile;
 import utils.PassObfuscatorImpl;
 import utils.PasswordObfuscator;
 
@@ -16,21 +15,30 @@ public class MainVerticle extends AbstractVerticle {
         super.start(startPromise);
 
         PasswordObfuscator po = new PassObfuscatorImpl();
-        UserProfile profile = new MemProfileImpl(po);
-        ProfileVerticle userProfileVerticle = new ProfileVerticle(profile);
+//        UserProfile profile = new MemProfileImpl(po);
+//        ProfileVerticle userProfileVerticle = new ProfileVerticle(profile);
 
-        vertx.deployVerticle(userProfileVerticle, ar -> {
-            if (ar.succeeded()) {
-                logger.info("done");
-            } else {
-                logger.error("failed" + ar.cause());
-            }
-        });
+//        vertx.deployVerticle(userProfileVerticle, ar -> {
+//            if (ar.succeeded()) {
+//                logger.info("done");
+//            } else {
+//                logger.error("failed" + ar.cause());
+//            }
+//        });
     }
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
         MainVerticle v = new MainVerticle();
+
+        User u = new User("dinhnn", "123");
+        JsonSerializer serializer = new JsonSerializer();
+
+        try {
+            logger.info("LOL"+serializer.serialize(u));
+        } catch (Exception e) {
+
+        }
 
         vertx.deployVerticle(v, ar -> {
             if (ar.succeeded()) {

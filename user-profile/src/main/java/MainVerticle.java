@@ -1,5 +1,4 @@
-import common.JsonSerializer;
-import entity.User;
+import api.IngestVerticle;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -31,20 +30,16 @@ public class MainVerticle extends AbstractVerticle {
         Vertx vertx = Vertx.vertx();
         MainVerticle v = new MainVerticle();
 
-        User u = new User("dinhnn", "123");
-        JsonSerializer serializer = new JsonSerializer();
-
-        try {
-            logger.info("LOL"+serializer.serialize(u));
-        } catch (Exception e) {
-
-        }
-
         vertx.deployVerticle(v, ar -> {
             if (ar.succeeded()) {
                 logger.info("Deploy main verticle succeeded");
             } else {
-                logger.error("Deploy main verticle failed: " +ar.cause());
+                logger.error("Deploy main verticle failed: " + ar.cause());
+            }
+        });
+        vertx.deployVerticle(new IngestVerticle(), ar -> {
+            if (ar.failed()) {
+                logger.error("failed" + ar.cause());
             }
         });
     }

@@ -1,2 +1,4 @@
-package infra.kafka;public class Consumer {
+package infra.kafka;
+
+public class Consumer {
 }

@@ -6,18 +6,21 @@ import common.JsonSerializable;
 @JsonSerializable
 public class User {
 
-    @JsonElement(key = "usrname")
+    @JsonElement(key = "username_m")
     public String userName;
 
     @JsonElement
     public String hashedPass;
 
     @JsonElement
-    public int UserId;
+    public Integer UserId;
+
+    private String email;
 
 
     public User(String userName, String hashedPass) {
         this.userName = userName;
         this.hashedPass = hashedPass;
+        this.email = "email.com";
     }
 }

@@ -1,2 +1,5 @@
-package infra.activemq;public class ActiveMQHelper {
+package infra.activemq;
+
+public class ActiveMQHelper {
+
 }

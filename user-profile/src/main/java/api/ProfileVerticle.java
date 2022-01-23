@@ -22,8 +22,7 @@ public class ProfileVerticle extends AbstractVerticle {
     static final Logger logger = LoggerFactory.getLogger(ProfileVerticle.class);
 
     private static final String CONFIG_HTTP_PORT = "CONFIG_HTTP_PORT";
-    private int port ;
-
+    private int port;
 
     public ProfileVerticle(UserProfile userProfile) {
         this.userProfile = userProfile;
@@ -85,6 +84,7 @@ public class ProfileVerticle extends AbstractVerticle {
 
         return jwtAuth.generateToken(claims, opts);
     }
+
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         super.start(startPromise);

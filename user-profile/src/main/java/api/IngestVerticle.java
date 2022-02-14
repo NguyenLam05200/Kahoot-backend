@@ -18,7 +18,6 @@ import io.vertx.rxjava3.ext.web.handler.BodyHandler;
 import io.vertx.rxjava3.kafka.client.producer.KafkaProducer;
 import io.vertx.rxjava3.kafka.client.producer.KafkaProducerRecord;
 import utils.JsonValidator;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +26,7 @@ public class IngestVerticle extends AbstractVerticle {
 
     static final Logger logger = LoggerFactory.getLogger(IngestVerticle.class);
     private static final String stepsEventsKafkaEventName = "steps-events";
-    private static final String stepsEventsAmqpEventName = "steps-events";
+    private static final String stepsEventsAmqpEventName = "new-steps-events";
 
     private KafkaProducer<String, JsonObject> updateProducer;
     private JsonValidator stepMessageJsonValidator;
@@ -38,7 +37,6 @@ public class IngestVerticle extends AbstractVerticle {
 
     private AmqpReceiverOptions loadAmqpReceiverOptions() {
         return new AmqpReceiverOptions().setAutoAcknowledgement(true).setDurable(true)
-
                 ;
     }
 
@@ -88,17 +86,17 @@ public class IngestVerticle extends AbstractVerticle {
         JsonObject payload = rc.getBodyAsJson();
 
         if (!stepMessageJsonValidator.validate(payload) || payload.isEmpty()) {
-            rc.response().end("invalid parameters");
+            rc.response().rxEnd("invalid parameters");
             return;
         }
 
         KafkaProducerRecord<String, JsonObject> record = makeProducerRecord(payload);
 
         updateProducer.rxSend(record).subscribe(ok -> {
-            rc.rxEnd("message consumed");
             logger.info("message pushed to kafka");
+            rc.response().rxEnd("message consumed").subscribe();
         }, err -> {
-            rc.rxEnd("internal error");
+            rc.response().rxEnd("internal error");
             logger.error("ingestion failed", err);
         });
     }
@@ -106,7 +104,6 @@ public class IngestVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
-        super.start(startPromise);
 
         updateProducer = KafkaProducer.create(vertx, loadKafkaProducerOptions());
         stepMessageJsonValidator = JsonValidator.create(new String[]{"device-id", "user-name"});
@@ -122,15 +119,24 @@ public class IngestVerticle extends AbstractVerticle {
                         this::handleStepCounter,
                         throwable -> {
                             logger.error(throwable);
-                        });
+                        })
+                ;
+        ;
 
 
         Router router = Router.router(vertx);
         router.post().handler(BodyHandler.create());
         router.post("/ingest").handler(this::handleStepCounter);
 
-        vertx.createHttpServer().requestHandler(router).rxListen(82)
-                .ignoreElement();
+        vertx.createHttpServer()
+                .requestHandler(router)
+                .rxListen(80)
+                .subscribe( start -> {
+                    logger.info("start http server at");
+                    startPromise.complete();
+                }, startPromise::fail)
+
+        ;
 
     }
 }

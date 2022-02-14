@@ -18,14 +18,15 @@ import repo.profile.UserProfile;
 
 public class ProfileVerticle extends AbstractVerticle {
     private final UserProfile userProfile;
-    private JWTAuth jwtAuth;
+    private final JWTAuth jwtAuthProvider;
     static final Logger logger = LoggerFactory.getLogger(ProfileVerticle.class);
 
     private static final String CONFIG_HTTP_PORT = "CONFIG_HTTP_PORT";
     private int port;
 
-    public ProfileVerticle(UserProfile userProfile) {
+    public ProfileVerticle(UserProfile userProfile, JWTAuth provider) {
         this.userProfile = userProfile;
+        this.jwtAuthProvider = provider;
     }
 
     private void handleLogin(RoutingContext rc) {
@@ -56,8 +57,12 @@ public class ProfileVerticle extends AbstractVerticle {
         userProfile.Existed(username).onComplete(
                 ar-> {
                     if (ar.succeeded()) {
-                    rc.end("User existed");
-                }}
+                        if (ar.result()) {
+                            rc.end("User existed");
+                            return;
+                        }
+                    }
+                }
         );
         Future<User> user = userProfile.Create(username, password);
         user.onComplete(ar -> {
@@ -76,13 +81,15 @@ public class ProfileVerticle extends AbstractVerticle {
 
     private String makeJwtToken(String username) {
         JsonObject claims = new JsonObject()
-                .put("username", username);
+                .put("username", username)
+                .put("device-id", "lol");
+
         JWTOptions opts = new JWTOptions()
                 .setAlgorithm("RS256")
                 .setExpiresInMinutes(10_080)
                 .setSubject(username);
 
-        return jwtAuth.generateToken(claims, opts);
+        return jwtAuthProvider.generateToken(claims, opts);
     }
 
     @Override
@@ -96,12 +103,16 @@ public class ProfileVerticle extends AbstractVerticle {
         router.post().handler(bodyHandler);
         router.put().handler(bodyHandler);
 
-        JWTAuthHandler authHandler = JWTAuthHandler.create(jwtAuth);
+        JWTAuthHandler authHandler = JWTAuthHandler.create(jwtAuthProvider);
         router.get("/test").handler(routingContext -> {
             routingContext.end("test page");
         });
+        router.get("/admin").handler(authHandler).handler(routingContext -> {
+            routingContext.end("test page");
+        });
+
         router.post("/api/users/login").handler(this::handleLogin);
-        router.post("/api/users").handler(authHandler).handler(this::handlerCreateUser);
+        router.post("/api/users").handler(this::handlerCreateUser);
 
 
         svr.requestHandler(router).listen(port);

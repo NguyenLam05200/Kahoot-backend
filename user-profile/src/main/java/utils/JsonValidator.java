@@ -26,6 +26,9 @@ public class JsonValidator {
     }
 
     public boolean validate(JsonObject payload) {
+        if (payload == null)
+            return false;
+
         List<String> missingKeys = Arrays.stream(requiredKeys).filter(key ->
             !payload.containsKey(key)
         ).collect(Collectors.toList());

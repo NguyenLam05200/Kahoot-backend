@@ -17,9 +17,9 @@ public class CryptoHelper {
     }
 
     private static String read(String filename) throws IOException {
-        Path path = Paths.get("public-api", filename);
+        Path path = Paths.get("./", filename);
         if (!path.toFile().exists()) {
-            path = Paths.get("..", "public-api", filename);
+            throw new IOException("file name invalid:" + path);
         }
 
         return String.join("\n", Files.readAllLines(path, StandardCharsets.UTF_8));

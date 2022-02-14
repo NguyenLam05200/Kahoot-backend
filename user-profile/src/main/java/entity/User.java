@@ -1,18 +1,15 @@
 package entity;
 
-import common.JsonElement;
-import common.JsonSerializable;
 
-@JsonSerializable
 public class User {
 
-    @JsonElement(key = "username_m")
+
     public String userName;
 
-    @JsonElement
+
     public String hashedPass;
 
-    @JsonElement
+
     public Integer UserId;
 
     private String email;

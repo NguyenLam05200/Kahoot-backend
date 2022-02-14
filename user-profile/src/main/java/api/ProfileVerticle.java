@@ -22,7 +22,9 @@ public class ProfileVerticle extends AbstractVerticle {
     static final Logger logger = LoggerFactory.getLogger(ProfileVerticle.class);
 
     private static final String CONFIG_HTTP_PORT = "CONFIG_HTTP_PORT";
+    private static final String CONFIG_HTTP_API_PREFIX = "CONFIG_HTTP_API_PREFIX";
     private int port;
+    private String apiPrefix; // e.g /test
 
     public ProfileVerticle(UserProfile userProfile, JWTAuth provider) {
         this.userProfile = userProfile;
@@ -39,7 +41,9 @@ public class ProfileVerticle extends AbstractVerticle {
         Future<User> user = userProfile.VerifyProfile(username, password);
         user.onComplete(ar -> {
             if (ar.succeeded()) {
-                String token = makeJwtToken(username);
+                JsonObject claims = new JsonObject()
+                        .put("username", username);
+                String token = makeJwtToken(username, claims);
                 rc.response().putHeader("Content-Type", "application/jwt").end(token);
             } else {
                 handleAuthError(rc, ar.cause());
@@ -47,7 +51,7 @@ public class ProfileVerticle extends AbstractVerticle {
         });
     }
 
-    private void handlerCreateUser(RoutingContext rc ) {
+    private void handlerCreateUser(RoutingContext rc) {
         String username = rc.getBodyAsJson().getString("username");
         String password = rc.getBodyAsJson().getString("password");
         if (username == null || password == null) {
@@ -76,13 +80,10 @@ public class ProfileVerticle extends AbstractVerticle {
 
     private void handleAuthError(RoutingContext rc, Throwable e) {
         logger.error("user login failed");
-        rc.fail(403);
+        rc.fail(401);
     }
 
-    private String makeJwtToken(String username) {
-        JsonObject claims = new JsonObject()
-                .put("username", username)
-                .put("device-id", "lol");
+    private String makeJwtToken(String username, JsonObject claims) {
 
         JWTOptions opts = new JWTOptions()
                 .setAlgorithm("RS256")
@@ -95,7 +96,8 @@ public class ProfileVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         super.start(startPromise);
-        port = 81;
+        port = Integer.parseInt(System.getenv(CONFIG_HTTP_PORT));
+        apiPrefix = System.getenv(CONFIG_HTTP_API_PREFIX);
 
         BodyHandler bodyHandler = BodyHandler.create();
         HttpServer svr = vertx.createHttpServer();
@@ -104,15 +106,15 @@ public class ProfileVerticle extends AbstractVerticle {
         router.put().handler(bodyHandler);
 
         JWTAuthHandler authHandler = JWTAuthHandler.create(jwtAuthProvider);
-        router.get("/test").handler(routingContext -> {
+        router.get(apiPrefix + "/test").handler(routingContext -> {
             routingContext.end("test page");
         });
-        router.get("/admin").handler(authHandler).handler(routingContext -> {
+        router.get(apiPrefix +"/admin").handler(authHandler).handler(routingContext -> {
             routingContext.end("test page");
         });
 
-        router.post("/api/users/login").handler(this::handleLogin);
-        router.post("/api/users").handler(this::handlerCreateUser);
+        router.post(apiPrefix +"/api/users/login").handler(this::handleLogin);
+        router.post(apiPrefix +"/api/users").handler(this::handlerCreateUser);
 
 
         svr.requestHandler(router).listen(port);

@@ -6,6 +6,9 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="shared" />
+        <module name="event-pusher" />
+        <module name="congrats-service" />
         <module name="user-profile" />
       </profile>
     </annotationProcessing>

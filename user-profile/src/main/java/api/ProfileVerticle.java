@@ -109,13 +109,30 @@ public class ProfileVerticle extends AbstractVerticle {
         router.get(apiPrefix + "/test").handler(routingContext -> {
             routingContext.end("test page");
         });
-        router.get(apiPrefix +"/admin").handler(authHandler).handler(routingContext -> {
+        router.get(apiPrefix +"/admin").handler(routingContext -> {
             routingContext.end("test page");
         });
 
         router.post(apiPrefix +"/api/users/login").handler(this::handleLogin);
         router.post(apiPrefix +"/api/users").handler(this::handlerCreateUser);
 
+        router.get(apiPrefix+"/users/:username").handler(rc -> {
+            String username = rc.pathParam("username");
+            JsonObject userProfile = new JsonObject()
+                    .put("username", username)
+                    .put("email", "ngngnhatdinh1110@gmail.com")
+                    ;
+            rc.end(userProfile.toString());
+        });
+
+        router.get(apiPrefix+"/users/owns/:deviceId").handler(rc -> {
+            String deviceId = rc.pathParam("deviceId");
+            JsonObject userProfile = new JsonObject()
+                    .put("username", "dinhnn")
+                    .put("deviceId", deviceId)
+                    ;
+            rc.end(userProfile.toString());
+        });
 
         svr.requestHandler(router).listen(port);
     }

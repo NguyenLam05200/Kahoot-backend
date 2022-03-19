@@ -1,3 +1,4 @@
+import api.IngestVerticle;
 import api.ProfileVerticle;
 import infra.profile.MemProfileImpl;
 import io.vertx.core.AbstractVerticle;
@@ -22,7 +23,6 @@ public class MainVerticle extends AbstractVerticle {
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
-
         PasswordObfuscator po = new PassObfuscatorImpl();
         JWTAuth provider = JwtAuthHelper.createRSAJWTAuth(vertx);
         UserProfile profile = new MemProfileImpl(po);
@@ -38,13 +38,13 @@ public class MainVerticle extends AbstractVerticle {
         });
 
 
-//        vertx.deployVerticle(new IngestVerticle(), ar -> {
-//            if (ar.failed()) {
-//                logger.error("failed" + ar.cause());
-//            } else {
-//                logger.info("deployed Ingest Verticle");
-//            }
-//        });
+        vertx.deployVerticle(new IngestVerticle(), ar -> {
+            if (ar.failed()) {
+                logger.error("failed" + ar.cause());
+            } else {
+                logger.info("deployed Ingest Verticle");
+            }
+        });
 
         vertx.deployVerticle(userProfileVerticle, ar -> {
             if (ar.failed()) {

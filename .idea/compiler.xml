@@ -10,6 +10,8 @@
         <module name="event-pusher" />
         <module name="congrats-service" />
         <module name="user-profile" />
+        <module name="auth" />
+        <module name="file-converter" />
       </profile>
     </annotationProcessing>
   </component>

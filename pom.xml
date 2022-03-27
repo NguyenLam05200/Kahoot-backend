@@ -13,6 +13,9 @@
         <module>event-pusher</module>
         <module>shared</module>
         <module>congrats-service</module>
+        <module>file-converter</module>
+        <module>auth</module>
+        <module>activity-service</module>
     </modules>
 
     <properties>
@@ -60,6 +63,11 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web-client</artifactId>
             <version>4.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-mysql-client</artifactId>
+            <version>4.2.6</version>
         </dependency>
     </dependencies>
 </project>

@@ -26,6 +26,8 @@ public class ProfileVerticle extends AbstractVerticle {
     private int port;
     private String apiPrefix; // e.g /test
 
+
+
     public ProfileVerticle(UserProfile userProfile, JWTAuth provider) {
         this.userProfile = userProfile;
         this.jwtAuthProvider = provider;
@@ -79,9 +81,10 @@ public class ProfileVerticle extends AbstractVerticle {
     }
 
     private void handleAuthError(RoutingContext rc, Throwable e) {
-        logger.error("user login failed");
+        logger.error("auth error: " + e);
         rc.fail(401);
     }
+
 
     private String makeJwtToken(String username, JsonObject claims) {
 
@@ -92,6 +95,7 @@ public class ProfileVerticle extends AbstractVerticle {
 
         return jwtAuthProvider.generateToken(claims, opts);
     }
+
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {

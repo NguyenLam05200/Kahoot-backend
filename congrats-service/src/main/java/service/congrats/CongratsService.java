@@ -65,14 +65,12 @@ public class CongratsService extends AbstractVerticle {
   }
 
   private boolean validJson(KafkaConsumerRecord<String, JsonObject> record) {
-
     return StringUtils.isNotEmpty(record.value().getString("device-id"))
         && StringUtils.isNotEmpty(record.value().getString("steps"));
   }
 
   @Override
   public Completable rxStart() {
-
     KafkaConsumer<String, JsonObject> consumer = KafkaConsumer.create(this.vertx, config);
 
     consumer
@@ -88,7 +86,6 @@ public class CongratsService extends AbstractVerticle {
         .filter(this::above10K)
         .flatMapSingle(
             record -> {
-              logger.info("came");
               String deviceID = record.value().getString("device-id");
               Integer steps = record.value().getInteger("steps");
 

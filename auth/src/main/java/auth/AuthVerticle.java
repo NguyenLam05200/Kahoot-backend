@@ -1,5 +1,6 @@
 package auth;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.Completable;
 import io.reactivex.Maybe;
 import io.reactivex.MaybeSource;
@@ -21,7 +22,6 @@ public class AuthVerticle extends AbstractVerticle {
     private MongoUserUtil userUtil;
     private MongoAuthentication mongoAuthProvider;
     private MongoClient mongoClient;
-
     private static final Logger logger = LoggerFactory.getLogger(AuthVerticle.class);
 
     private void handleSuccessAuth(RoutingContext rc) {
@@ -31,7 +31,7 @@ public class AuthVerticle extends AbstractVerticle {
 
     private void handleAuthError(RoutingContext rc, Throwable e) {
         logger.error("[] auth error: " + e);
-        rc.fail(401);
+    rc.fail(HttpResponseStatus.UNAUTHORIZED.code());
     }
 
     private boolean validateBody(JsonObject body) {
@@ -49,7 +49,7 @@ public class AuthVerticle extends AbstractVerticle {
 
         if (!validateBody(body) ) {
             logger.error("invalid body");
-            rc.fail(401);
+      rc.fail(HttpResponseStatus.UNAUTHORIZED.code());
         }
 
         userUtil
@@ -101,6 +101,7 @@ public class AuthVerticle extends AbstractVerticle {
         String username = rc.pathParam("username");
         if (username.isEmpty()) {
             rc.fail(401);
+      return;
         }
 
         JsonObject fields = new JsonObject()
@@ -127,7 +128,7 @@ public class AuthVerticle extends AbstractVerticle {
                 });
     }
 
-    private boolean validate(JsonObject body,String ...fields) {
+  private boolean validate(JsonObject body, String... fields) {
         return true;
     }
 
@@ -210,7 +211,10 @@ public class AuthVerticle extends AbstractVerticle {
         router.post("/authenticate").handler(this::authenticate);
         router.post("/users").handler(this::authenticate);
         router.get("/users/:username").handler(this::getUserInfo);
-        router.put("/users").handler(this::updateUser);
+    router
+        .put("/users")
+        //                .handler(authHandler)
+        .handler(this::updateUser);
         router.get("/users/own/:deviceId").handler(this::getUserByDeviceId);
 
         svr.requestHandler(router).listen(3000);

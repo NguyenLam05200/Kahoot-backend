@@ -19,7 +19,7 @@ public class KafkaConfig {
         config.put("value.deserializer", System.getenv().getOrDefault(keySerializer, "io.vertx.kafka.client.serialization.JsonObjectDeserializer"));
         config.put("group.id", serviceName);
         config.put("auto.offset.reset", "latest");
-        config.put("enable.auto.commit", "true");
+        config.put("enable.auto.commit", "false");
         return config;
     }
 }

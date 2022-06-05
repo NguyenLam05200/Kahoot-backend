@@ -37,15 +37,15 @@ Vertx vertx;
   }
 
   private KafkaProducerRecord<JsonObject, JsonObject> makeRecord(String content) {
-      JsonObject payload = new JsonObject().put("steps", 10_001).put("device-id", "dinhnn").put("content", content).put("timestamp", Instant.now());
-      KafkaProducerRecord<JsonObject, JsonObject> record =  KafkaProducerRecord.create("daily.steps.updates", new JsonObject().put("tset", "abc"), payload);
+      JsonObject payload = new JsonObject().put("steps", 1).put("device-id", "dinhnn").put("content", content).put("timestamp", Instant.now());
+      KafkaProducerRecord<JsonObject, JsonObject> record =  KafkaProducerRecord.create("counter.events", null, payload);
       return record;
   }
   @Override
   public Completable rxStart() {
     producer = KafkaProducer.create(vertx, getKafkaConfig());
 
-    Observable.interval(1, TimeUnit.SECONDS)
+    Observable.interval(10, TimeUnit.SECONDS)
         .map(
             l -> {
               logger.info("start worker: {}", LocalTime.now());

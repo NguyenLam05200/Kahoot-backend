@@ -58,6 +58,7 @@ public class ProfileVerticle extends AbstractVerticle {
         String password = rc.getBodyAsJson().getString("password");
         if (username == null || password == null) {
             rc.end("Invalid username or password");
+      return;
         }
 
         userProfile.Existed(username).onComplete(

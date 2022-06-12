@@ -1,4 +1,3 @@
-import api.IngestVerticle;
 import api.ProfileVerticle;
 import infra.profile.MemProfileImpl;
 import io.vertx.core.AbstractVerticle;
@@ -14,6 +13,8 @@ import utils.PasswordObfuscator;
 
 public class MainVerticle extends AbstractVerticle {
     static final Logger logger = LoggerFactory.getLogger(MainVerticle.class);
+  private static final String JWT_SECRET_KEY = "keyboard cat";
+
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         super.start(startPromise);
@@ -22,12 +23,12 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-        PasswordObfuscator po = new PassObfuscatorImpl();
-        JWTAuth provider = JwtAuthHelper.createRSAJWTAuth(vertx);
-        UserProfile profile = new MemProfileImpl(po);
+    Vertx vertx = Vertx.vertx();
+    PasswordObfuscator po = new PassObfuscatorImpl();
+    JWTAuth jwtAuthProvider = JwtAuthHelper.createSHAJWTAuth(vertx, JWT_SECRET_KEY);
+    UserProfile profileRepo = new MemProfileImpl(po);
 
-        ProfileVerticle userProfileVerticle = new ProfileVerticle(profile, provider);
+    ProfileVerticle userProfileVerticle = new ProfileVerticle(profileRepo, jwtAuthProvider);
 
         vertx.deployVerticle(userProfileVerticle, ar -> {
             if (ar.succeeded()) {
@@ -37,21 +38,13 @@ public class MainVerticle extends AbstractVerticle {
             }
         });
 
+    //        vertx.deployVerticle(new IngestVerticle(), ar -> {
+    //            if (ar.failed()) {
+    //                logger.error("failed" + ar.cause());
+    //            } else {
+    //                logger.info("deployed Ingest Verticle");
+    //            }
+    //        });
 
-        vertx.deployVerticle(new IngestVerticle(), ar -> {
-            if (ar.failed()) {
-                logger.error("failed" + ar.cause());
-            } else {
-                logger.info("deployed Ingest Verticle");
-            }
-        });
-
-        vertx.deployVerticle(userProfileVerticle, ar -> {
-            if (ar.failed()) {
-                logger.error("failed" + ar.cause());
-            } else {
-                logger.info("deployed Auth Verticle");
-            }
-        });
-    }
+  }
 }

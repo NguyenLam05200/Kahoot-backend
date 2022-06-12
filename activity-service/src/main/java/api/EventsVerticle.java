@@ -87,8 +87,7 @@ public class EventsVerticle extends AbstractVerticle {
               if (error instanceof SerializationException) {
                 logger.warn("parsing message failed, skipped");
                 String s =
-                    ((SerializationException) error)
-                        .getMessage()
+                    error.getMessage()
                         .split("Error deserializing key/value for partition ")[1]
                         .split(". If needed, please seek past the record to continue consumption.")[
                         0];

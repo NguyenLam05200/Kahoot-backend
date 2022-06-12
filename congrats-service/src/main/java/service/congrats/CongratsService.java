@@ -29,7 +29,7 @@ public class CongratsService extends AbstractVerticle {
   MailClient mailClient;
   private static final Logger logger = LoggerFactory.getLogger(CongratsService.class);
   private static final String KafkaTopicName = "KAFKA_TOPIC";
-  private String kafkaTopic;
+  private final String kafkaTopic;
 
   public CongratsService(Vertx vertx) {
     MailConfig mailConfig = new MailConfig().setHostname("localhost").setPort(1025);

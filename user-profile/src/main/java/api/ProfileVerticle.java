@@ -7,8 +7,6 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.JWTOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -26,32 +24,12 @@ public class ProfileVerticle extends AbstractVerticle {
     private int port;
     private String apiPrefix; // e.g /test
 
-
-
-    public ProfileVerticle(UserProfile userProfile, JWTAuth provider) {
-        this.userProfile = userProfile;
-        this.jwtAuthProvider = provider;
+  public ProfileVerticle(UserProfile userProfileRepo, JWTAuth jwtAuthProvider) {
+    this.userProfile = userProfileRepo;
+    this.jwtAuthProvider = jwtAuthProvider;
     }
 
-    private void handleLogin(RoutingContext rc) {
-        String username = rc.getBodyAsJson().getString("username");
-        String password = rc.getBodyAsJson().getString("password");
-        if (username == null || password == null) {
-            rc.end("Invalid username or password");
-        }
 
-        Future<User> user = userProfile.VerifyProfile(username, password);
-        user.onComplete(ar -> {
-            if (ar.succeeded()) {
-                JsonObject claims = new JsonObject()
-                        .put("username", username);
-                String token = makeJwtToken(username, claims);
-                rc.response().putHeader("Content-Type", "application/jwt").end(token);
-            } else {
-                handleAuthError(rc, ar.cause());
-            }
-        });
-    }
 
     private void handlerCreateUser(RoutingContext rc) {
         String username = rc.getBodyAsJson().getString("username");
@@ -86,17 +64,7 @@ public class ProfileVerticle extends AbstractVerticle {
         rc.fail(401);
     }
 
-
-    private String makeJwtToken(String username, JsonObject claims) {
-
-        JWTOptions opts = new JWTOptions()
-                .setAlgorithm("RS256")
-                .setExpiresInMinutes(10_080)
-                .setSubject(username);
-
-        return jwtAuthProvider.generateToken(claims, opts);
-    }
-
+  private void handlerUpdateUser(RoutingContext rc) {}
 
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
@@ -111,33 +79,34 @@ public class ProfileVerticle extends AbstractVerticle {
         router.put().handler(bodyHandler);
 
         JWTAuthHandler authHandler = JWTAuthHandler.create(jwtAuthProvider);
-        router.get(apiPrefix + "/test").handler(routingContext -> {
-            routingContext.end("test page");
-        });
-        router.get(apiPrefix +"/admin").handler(routingContext -> {
-            routingContext.end("test page");
-        });
+        JWTAuthHandler adminAuthHandler = JWTAuthHandler.create(jwtAuthProvider).withScope("scope.admin");
 
-        router.post(apiPrefix +"/api/users/login").handler(this::handleLogin);
+    router
+        .get(apiPrefix + "/test")
+        .handler(
+            rc -> {
+              rc.end("test page");
+            });
+
+    router
+        .get(apiPrefix + "/admin")
+        .handler(adminAuthHandler)
+        .handler(
+            routingContext -> {
+              routingContext.end("test page");
+            });
+
         router.post(apiPrefix +"/api/users").handler(this::handlerCreateUser);
 
-        router.get(apiPrefix+"/users/:username").handler(rc -> {
-            String username = rc.pathParam("username");
-            JsonObject userProfile = new JsonObject()
-                    .put("username", username)
-                    .put("email", "ngngnhatdinh1110@gmail.com")
-                    ;
-            rc.end(userProfile.toString());
-        });
+    router
+        .get(apiPrefix + "/users/:username")
+        .handler(authHandler)
+        .handler(
+            rc -> {
+              String username = rc.pathParam("username");
 
-        router.get(apiPrefix+"/users/owns/:deviceId").handler(rc -> {
-            String deviceId = rc.pathParam("deviceId");
-            JsonObject userProfile = new JsonObject()
-                    .put("username", "dinhnn")
-                    .put("deviceId", deviceId)
-                    ;
-            rc.end(userProfile.toString());
-        });
+              rc.end("To Be Defined");
+            });
 
         svr.requestHandler(router).listen(port);
     }

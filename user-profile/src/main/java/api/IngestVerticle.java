@@ -123,7 +123,6 @@ public class IngestVerticle extends AbstractVerticle {
                             logger.error(throwable);
                         })
                 ;
-        ;
 
 
         Router router = Router.router(vertx);

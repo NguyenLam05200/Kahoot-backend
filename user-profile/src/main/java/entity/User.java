@@ -6,7 +6,7 @@ public class User {
     public String hashedPass;
     public String salt;
     public Integer userId;
-    private String email;
+  private final String email;
 
     public User(String userName, String hashedPass) {
         this.userName = userName;

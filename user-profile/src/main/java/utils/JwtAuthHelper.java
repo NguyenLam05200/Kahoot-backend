@@ -31,8 +31,22 @@ public class JwtAuthHelper {
             String privateKey = CryptoHelper.privateKey();
             return JWTAuth.create(vertx, new JWTAuthOptions()
                     .addPubSecKey(new PubSecKeyOptions()
-                            .setAlgorithm("SHA256")
+                            .setAlgorithm("HS256")
                             .setBuffer(privateKey)
+                    )
+            );
+        } catch (Exception e) {
+            System.out.println("Error"+e);
+            return null;
+        }
+    }
+    public static JWTAuth createSHAJWTAuth(Vertx vertx, String secret) {
+        try {
+            String privateKey = CryptoHelper.privateKey();
+            return JWTAuth.create(vertx, new JWTAuthOptions()
+                    .addPubSecKey(new PubSecKeyOptions()
+                            .setAlgorithm("HS256")
+                            .setBuffer(secret)
                     )
             );
         } catch (Exception e) {

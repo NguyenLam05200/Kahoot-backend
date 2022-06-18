@@ -36,7 +36,7 @@ public class JsonValidator {
             return true;
         }
 
-        System.out.println("missing keys: " + missingKeys.toString());
+    System.out.println("missing keys: " + missingKeys);
         return false;
     }
 

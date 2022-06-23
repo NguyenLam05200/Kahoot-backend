@@ -5,7 +5,9 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.logging.Logger;
 import io.vertx.core.impl.logging.LoggerFactory;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.jwt.JWTAuth;
+import io.vertx.ext.mongo.MongoClient;
 import repo.profile.UserProfile;
 import utils.JwtAuthHelper;
 import utils.PassObfuscatorImpl;
@@ -27,8 +29,10 @@ public class MainVerticle extends AbstractVerticle {
     PasswordObfuscator po = new PassObfuscatorImpl();
     JWTAuth jwtAuthProvider = JwtAuthHelper.createSHAJWTAuth(vertx, JWT_SECRET_KEY);
     UserProfile profileRepo = new MemProfileImpl(po);
-
-    ProfileVerticle userProfileVerticle = new ProfileVerticle(profileRepo, jwtAuthProvider);
+    JsonObject mongoConfig =
+        new JsonObject().put("host", "localhost").put("port", 27017).put("db_name", "profiles");
+    MongoClient mongoClient = MongoClient.createShared(vertx, mongoConfig);
+    ProfileVerticle userProfileVerticle = new ProfileVerticle(profileRepo, jwtAuthProvider, mongoClient);
 
         vertx.deployVerticle(userProfileVerticle, ar -> {
             if (ar.succeeded()) {

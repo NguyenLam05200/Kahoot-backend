@@ -16,6 +16,7 @@
         <module>file-converter</module>
         <module>auth</module>
         <module>activity-service</module>
+        <module>event-brigde</module>
     </modules>
 
     <properties>

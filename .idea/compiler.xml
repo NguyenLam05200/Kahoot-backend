@@ -12,6 +12,7 @@
         <module name="user-profile" />
         <module name="auth" />
         <module name="file-converter" />
+        <module name="event-brigde" />
         <module name="congrats-service" />
       </profile>
     </annotationProcessing>

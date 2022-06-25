@@ -38,36 +38,31 @@
 
                 </configuration>
             </plugin>
+
             <plugin>
-                <groupId>com.spotify</groupId>
-                <artifactId>docker-maven-plugin</artifactId>
-                <version>0.2.8</version>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>MainVerticle</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>docker</id>
+                        <id>assemble-all</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>build</goal>
+                            <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <dockerDirectory>${project.basedir}/src/main/docker</dockerDirectory>
-                    <!-- Configure the image name -->
-                    <imageName>sample/vertx-hello</imageName>
-                    <resources>
-                        <resource>
-                            <targetPath>/verticles</targetPath>
-                            <directory>${project.build.directory}</directory>
-                            <includes>
-                                <include>${project.artifactId}-${project.version}.jar</include>
-                            </includes>
-                        </resource>
-                        <!-- don't forget to also add all the dependencies required by your application -->
-                    </resources>
-                </configuration>
             </plugin>
-
         </plugins>
     </build>
 </project>

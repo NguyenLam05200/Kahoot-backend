@@ -150,7 +150,7 @@ public class ProfileVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         super.start(startPromise);
-        port = Integer.parseInt(System.getenv(CONFIG_HTTP_PORT));
+        port = 8080;
 
         BodyHandler bodyHandler = BodyHandler.create();
         HttpServer svr = vertx.createHttpServer();

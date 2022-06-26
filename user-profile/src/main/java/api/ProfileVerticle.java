@@ -28,7 +28,7 @@ public class ProfileVerticle extends AbstractVerticle {
 
     private static final String CONFIG_HTTP_PORT = "CONFIG_HTTP_PORT";
     private static final String CONFIG_HTTP_API_PREFIX = "CONFIG_HTTP_API_PREFIX";
-    private int port;
+    private final int  port = 9090;
   private final String apiPrefix = "/v1/api"; // e.g /test
   private final String adminApiPrefix = "/v1/api/admin";
 
@@ -150,7 +150,6 @@ public class ProfileVerticle extends AbstractVerticle {
     @Override
     public void start(Promise<Void> startPromise) throws Exception {
         super.start(startPromise);
-        port = Integer.parseInt(System.getenv(CONFIG_HTTP_PORT));
 
         BodyHandler bodyHandler = BodyHandler.create();
         HttpServer svr = vertx.createHttpServer();

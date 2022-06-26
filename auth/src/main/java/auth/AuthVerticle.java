@@ -30,7 +30,7 @@ import java.util.List;
 
 @AllArgsConstructor
 public class AuthVerticle extends AbstractVerticle {
-  public static final int PORT = 3000;
+  public static final int PORT = 8080;
     private MongoUserUtil userUtil;
   private final int jwtExpSecond = 3600; // 1 hour
   private AuthenticationProvider mongoAuthProvider;
@@ -47,7 +47,7 @@ public class AuthVerticle extends AbstractVerticle {
     }
 
     private boolean validateBody(JsonObject body) {
-        return body.containsKey("username") && body.containsKey("password");
+        return !body.isEmpty() && body.containsKey("username") && body.containsKey("password");
     }
 
     private void register(RoutingContext rc) {
@@ -239,8 +239,8 @@ public class AuthVerticle extends AbstractVerticle {
         router.post().handler(bodyHandler);
         router.put().handler(bodyHandler);
 
-        router.post("/register").handler(this::register);
-        router.post("/authenticate").handler(this::authenticate);
+    router.post("/v1/user/register").handler(this::register);
+    router.post("/v1/user/authenticate").handler(this::authenticate);
     svr.requestHandler(router).listen(PORT);
         return super.rxStart();
     }

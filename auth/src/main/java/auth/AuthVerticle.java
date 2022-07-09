@@ -31,52 +31,96 @@ import java.util.List;
 @AllArgsConstructor
 public class AuthVerticle extends AbstractVerticle {
   public static final int PORT = 8080;
-    private MongoUserUtil userUtil;
+  private static final Logger logger = LoggerFactory.getLogger(AuthVerticle.class);
   private final int jwtExpSecond = 3600; // 1 hour
+  private MongoUserUtil userUtil;
   private AuthenticationProvider mongoAuthProvider;
     private MongoClient mongoClient;
-    private static final Logger logger = LoggerFactory.getLogger(AuthVerticle.class);
   private JWTAuth jwtAuthProvider;
+
+  public static void main(String[] args) {
+    Vertx vertx = Vertx.vertx();
+    JsonObject mongoConfig =
+        new JsonObject().put("host", "localhost").put("port", 27017).put("db_name", "profiles");
+    MongoClient mongoClient = MongoClient.createShared(vertx, mongoConfig);
+    MongoAuthentication mongoAuthentication =
+        MongoAuthentication.create(mongoClient, new MongoAuthenticationOptions());
+    MongoUserUtil userUtil = MongoUserUtil.create(mongoClient);
+    JWTAuth jwtAuthProvider =
+        JWTAuth.create(
+            vertx,
+            new JWTAuthOptions()
+                .addPubSecKey(
+                    new PubSecKeyOptions().setAlgorithm("HS256").setBuffer("keyboard cat")));
+
+    AuthVerticle authVerticle =
+        new AuthVerticle(userUtil, mongoAuthentication, mongoClient, jwtAuthProvider);
+
+    vertx
+        .rxDeployVerticle(authVerticle)
+        .subscribe(
+            ok -> {
+              logger.info("Deploy Auth Verticle OK");
+            },
+            err -> {
+              logger.error("Deploy Auth Verticle failed: " + err);
+            });
+  }
+
+  String toResponseFormat(String e) {
+    return new JsonObject().put("error", e).encodePrettily();
+  }
 
     private void handleSuccessAuth(RoutingContext rc) {
         rc.response().setStatusCode(200).end();
     }
 
     private void handleAuthError(RoutingContext rc, Throwable e) {
-    rc.fail(HttpResponseStatus.UNAUTHORIZED.code());
+
+    rc.response().setStatusCode(401);
+    rc.end(toResponseFormat("Invalid email or password"));
     }
 
     private boolean validateBody(JsonObject body) {
-        return !body.isEmpty() && body.containsKey("username") && body.containsKey("password");
+    return !body.isEmpty() && body.containsKey("email") && body.containsKey("password");
     }
 
     private void register(RoutingContext rc) {
         JsonObject body = rc.getBodyAsJson();
         JsonObject extraInfo = new JsonObject()
                 .put("$set", new JsonObject()
-                        .put("email","email")
                         .put("city", "city")
                         .put("deviceId", "device-id")
                         .put("makePublic", true));
 
         if (!validateBody(body) ) {
             logger.error("invalid body");
+      rc.response().write(new JsonObject().put("error", "missing email or password").toString());
       rc.fail(HttpResponseStatus.UNAUTHORIZED.code());
       return;
         }
-
-    userUtil
-        .rxCreateUser(body.getString("username"), body.getString("password"))
-        .flatMapMaybe(id -> insertExtraInfo(extraInfo, id))
-        .ignoreElement()
-        .subscribe(() -> handleSuccessAuth(rc), err -> handleAuthError(rc, err.getCause()));
+    mongoClient.find(
+        "user",
+        new JsonObject().put("username", body.getString("email")),
+        ar -> {
+          if (!ar.result().isEmpty()) {
+            rc.response().setStatusCode(401);
+            rc.end(toResponseFormat("Your email is already exist, please try another email!"));
+          } else {
+            userUtil
+                .rxCreateUser(body.getString("email"), body.getString("password"))
+                .ignoreElement()
+                .subscribe(() -> handleSuccessAuth(rc), err -> handleAuthError(rc, err.getCause()));
+          }
+        });
     }
 
     private void authenticate(RoutingContext rc) {
         JsonObject body = rc.getBodyAsJson();
         if (!validateBody(body) ) {
-            rc.fail(401);
+      rc.fail(404);
         }
+    body.put("username", body.getString("email"));
 
     mongoAuthProvider
         .rxAuthenticate(body)
@@ -92,31 +136,27 @@ public class AuthVerticle extends AbstractVerticle {
 
               JsonObject claims =
                   new JsonObject()
-                      .put("username", user.get("username"))
+                      .put("email", body.getString("email"))
                       .put("test_field", "test")
                       .put("extra", new JsonObject())
                       .put("scope", scopes);
 
               String token = jwtAuthProvider.generateToken(claims, jwtOptions);
-              rc.response()
-                  .addCookie(
-                      Cookie.cookie("KAHOOT_JWT", token).setHttpOnly(true).setMaxAge(jwtExpSecond));
+              rc.response().addCookie(Cookie.cookie("KAHOOT_JWT", token).setMaxAge(jwtExpSecond));
+              user.attributes().put("token", token);
               return user;
             })
-        .subscribe(user -> handleSuccessAuth(rc), err -> handleAuthError(rc, err));
+        .subscribe(
+            user -> {
+              rc.end(
+                  new JsonObject()
+                      .put("token", user.attributes().getString("token"))
+                      .encodePrettily());
+            },
+            err -> handleAuthError(rc, err));
     }
 
-    private MaybeSource<? extends JsonObject> insertExtraInfo(JsonObject extraInfo, String userId) {
-        JsonObject query = new JsonObject().put("_id", userId);
 
-    return mongoClient
-        .rxFindOneAndUpdate("user", query, extraInfo)
-        .onErrorResumeNext(
-            err -> {
-              logger.error("error" + err);
-              return deleteIncompleteUser(query, err);
-            });
-    }
 
   /**
    * deleteIncompleteUser acts like a transaction clean up
@@ -243,35 +283,6 @@ public class AuthVerticle extends AbstractVerticle {
     router.post("/v1/user/authenticate").handler(this::authenticate);
     svr.requestHandler(router).listen(PORT);
         return super.rxStart();
-    }
-
-    public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-    JsonObject mongoConfig =
-        new JsonObject().put("host", "localhost").put("port", 27017).put("db_name", "profiles");
-    MongoClient mongoClient = MongoClient.createShared(vertx, mongoConfig);
-    MongoAuthentication mongoAuthentication =
-        MongoAuthentication.create(mongoClient, new MongoAuthenticationOptions());
-    MongoUserUtil userUtil = MongoUserUtil.create(mongoClient);
-    JWTAuth jwtAuthProvider =
-        JWTAuth.create(
-            vertx,
-            new JWTAuthOptions()
-                .addPubSecKey(
-                    new PubSecKeyOptions().setAlgorithm("HS256").setBuffer("keyboard cat")));
-
-    AuthVerticle authVerticle =
-        new AuthVerticle(userUtil, mongoAuthentication, mongoClient, jwtAuthProvider);
-
-    vertx
-        .rxDeployVerticle(authVerticle)
-        .subscribe(
-            ok -> {
-              logger.info("Deploy Auth Verticle OK");
-            },
-            err -> {
-              logger.error("Deploy Auth Verticle failed: " + err);
-            });
     }
 }
 

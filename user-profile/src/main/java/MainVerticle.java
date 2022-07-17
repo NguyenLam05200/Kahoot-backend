@@ -34,7 +34,6 @@ public class MainVerticle extends AbstractVerticle {
         new JsonObject().put("host", "localhost").put("port", 27017).put("db_name", "profiles");
     MongoClient mongoClient = MongoClient.createShared(vertx, mongoConfig);
     ProfileVerticle userProfileVerticle = new ProfileVerticle(profileRepo, jwtAuthProvider, mongoClient);
-    System.out.println("Test" + MainVerticle.class.getName());
         vertx.deployVerticle(userProfileVerticle, ar -> {
             if (ar.succeeded()) {
                 logger.info("done");

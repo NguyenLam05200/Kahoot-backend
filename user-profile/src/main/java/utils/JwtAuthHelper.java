@@ -42,7 +42,6 @@ public class JwtAuthHelper {
     }
     public static JWTAuth createSHAJWTAuth(Vertx vertx, String secret) {
         try {
-            String privateKey = CryptoHelper.privateKey();
             return JWTAuth.create(vertx, new JWTAuthOptions()
                     .addPubSecKey(new PubSecKeyOptions()
                             .setAlgorithm("HS256")

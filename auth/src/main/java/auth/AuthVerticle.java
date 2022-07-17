@@ -87,18 +87,24 @@ public class AuthVerticle extends AbstractVerticle {
 
     private void register(RoutingContext rc) {
         JsonObject body = rc.getBodyAsJson();
-        JsonObject extraInfo = new JsonObject()
-                .put("$set", new JsonObject()
-                        .put("city", "city")
-                        .put("deviceId", "device-id")
-                        .put("makePublic", true));
+
 
         if (!validateBody(body) ) {
-            logger.error("invalid body");
-      rc.response().write(new JsonObject().put("error", "missing email or password").toString());
-      rc.fail(HttpResponseStatus.UNAUTHORIZED.code());
-      return;
+            logger.error("missing username or password");
+            rc.response().end(new JsonObject().put("error", "missing email or password").toString());
+            rc.fail(HttpResponseStatus.BAD_REQUEST.code());
+            return;
         }
+        if (!body.containsKey("name")) {
+            logger.error("missing name");
+            rc.response().end(new JsonObject().put("error", "missing name").toString());
+            rc.fail(HttpResponseStatus.BAD_REQUEST.code());
+            return;
+        }
+        JsonObject extraInfo = new JsonObject()
+                .put("$set", new JsonObject()
+                        .put("name", body.getString("name"))
+                );
     mongoClient.find(
         "user",
         new JsonObject().put("username", body.getString("email")),
@@ -109,6 +115,7 @@ public class AuthVerticle extends AbstractVerticle {
           } else {
             userUtil
                 .rxCreateUser(body.getString("email"), body.getString("password"))
+                .flatMapMaybe(id -> insertExtraInfo(extraInfo, id))
                 .ignoreElement()
                 .subscribe(() -> handleSuccessAuth(rc), err -> handleAuthError(rc, err.getCause()));
           }
@@ -137,7 +144,7 @@ public class AuthVerticle extends AbstractVerticle {
               JsonObject claims =
                   new JsonObject()
                       .put("email", body.getString("email"))
-                      .put("test_field", "test")
+                      .put("name", user.principal().getString("name"))
                       .put("extra", new JsonObject())
                       .put("scope", scopes);
 
@@ -157,6 +164,17 @@ public class AuthVerticle extends AbstractVerticle {
     }
 
 
+    private MaybeSource<? extends JsonObject> insertExtraInfo(JsonObject extraInfo, String userId) {
+        JsonObject query = new JsonObject().put("_id", userId);
+
+        return mongoClient
+                .rxFindOneAndUpdate("user", query, extraInfo)
+                .onErrorResumeNext(
+                        err -> {
+                            logger.error("error" + err);
+                            return deleteIncompleteUser(query, err);
+                        });
+    }
 
   /**
    * deleteIncompleteUser acts like a transaction clean up

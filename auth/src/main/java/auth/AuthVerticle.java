@@ -15,6 +15,7 @@ import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.http.Cookie;
 import io.vertx.reactivex.core.http.HttpServer;
+import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.reactivex.ext.auth.jwt.JWTAuth;
 import io.vertx.reactivex.ext.auth.mongo.MongoAuthentication;
@@ -24,7 +25,11 @@ import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.handler.BodyHandler;
 import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +38,7 @@ public class AuthVerticle extends AbstractVerticle {
   public static final int PORT = 8080;
   private static final Logger logger = LoggerFactory.getLogger(AuthVerticle.class);
   private final int jwtExpSecond = 3600; // 1 hour
+  private final long extendJwtExpSecond = 300; // 5 min
   private MongoUserUtil userUtil;
   private AuthenticationProvider mongoAuthProvider;
     private MongoClient mongoClient;
@@ -163,6 +169,42 @@ public class AuthVerticle extends AbstractVerticle {
             err -> handleAuthError(rc, err));
     }
 
+  private void keepAlive(RoutingContext rc) {
+    String headerValue = rc.request().getHeader("Authorization");
+    String jwt = StringUtils.remove(headerValue, "Bearer ");
+    JsonObject credentials = new JsonObject().put("token", jwt);
+    jwtAuthProvider.authenticate(
+        credentials,
+        ar -> {
+          if (ar.succeeded()) {
+            User user = ar.result();
+            List<String> scopes = new ArrayList<>();
+            scopes.add("scope.admin");
+              Instant exp = Instant.ofEpochSecond(user.attributes().getLong("exp"));
+            long newExp = Duration.between(Instant.now(), exp).plus(extendJwtExpSecond, ChronoUnit.SECONDS).getSeconds();
+//            long newExp = Instant.ofEpochSecond(exp).minus(Instant.now()).getEpochSecond();
+
+            JWTOptions jwtOptions =
+                new JWTOptions()
+                    .setExpiresInSeconds((int) newExp)
+                    .setSubject(user.principal().getString("email"));
+
+            JsonObject claims =
+                new JsonObject()
+                    .put("email", user.principal().getString("email"))
+                    .put("name", user.principal().getString("name"))
+                    .put("extra", new JsonObject())
+                    .put("scope", scopes);
+
+            String token = jwtAuthProvider.generateToken(claims, jwtOptions);
+            rc.response().addCookie(Cookie.cookie("KAHOOT_JWT", token).setMaxAge(newExp));
+            rc.end(new JsonObject().put("token", token).encodePrettily());
+          } else {
+            rc.response().setStatusCode(401);
+            rc.end(new JsonObject().put("error", "invalid credentials").encodePrettily());
+          }
+        });
+  }
 
     private MaybeSource<? extends JsonObject> insertExtraInfo(JsonObject extraInfo, String userId) {
         JsonObject query = new JsonObject().put("_id", userId);
@@ -299,6 +341,7 @@ public class AuthVerticle extends AbstractVerticle {
 
     router.post("/v1/user/register").handler(this::register);
     router.post("/v1/user/authenticate").handler(this::authenticate);
+    router.post("/v1/user/keepalive").handler(this::keepAlive);
     svr.requestHandler(router).listen(PORT);
         return super.rxStart();
     }
